@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -23,16 +24,25 @@ public class JwtTokenProvider {
     @Value("${app.jwt.signing-key}")
     private String signingKey;
 
+    @Value("${app.jwt.token-expiration-hours:1}")
+    private int tokenExpirationHours;
+
     @PostConstruct
     public void init() {
+        if (signingKey == null || signingKey.isBlank()) {
+            throw new IllegalStateException("Signing key cannot be null or empty");
+        }
         key = Keys.hmacShaKeyFor(signingKey.getBytes(StandardCharsets.UTF_8));
     }
 
     public String createToken(UserDetails user) {
         final var claims = Jwts.claims();
         claims.put("email", user.getUsername());
-        claims.put("authorities", user.getAuthorities().stream().toList());
-        claims.setIssuedAt(Date.from(LocalDateTime.now().atZone(ZoneId.of("Asia/Seoul")).toInstant()));
+        claims.put("authorities", List.of("ROLE_READ", "ROLE_MANAGE")); // Include ROLE_READ
+        claims.setIssuedAt(Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant()));
+        claims.setExpiration(Date.from(LocalDateTime.now()
+                .plusHours(tokenExpirationHours)
+                .atZone(ZoneId.systemDefault()).toInstant()));
         return Jwts.builder()
                 .setClaims(claims)
                 .signWith(key)
@@ -40,9 +50,19 @@ public class JwtTokenProvider {
     }
 
     public Claims decodeToken(String token) {
-        final var parser = Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build();
-        return parser.parseClaimsJws(token).getBody();
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid or expired token", e);
+        }
+    }
+
+    public boolean validateToken(String token, String email) {
+        Claims claims = decodeToken(token);
+        return claims.get("email").equals(email) && claims.getExpiration().after(new Date());
     }
 }

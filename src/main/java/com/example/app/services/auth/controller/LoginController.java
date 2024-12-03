@@ -20,14 +20,18 @@ public class LoginController {
     private final SecurityService securityService;
     private final JwtTokenProvider jwtTokenProvider;
 
-    @PostMapping(path = "")
+    @PostMapping
     public ResponseEntity<Void> userLogin(@RequestBody AuthorityDto.Login login) {
-        final var user = userDetailsService.findUser(login.getEmail(), login.getPassword());
-        final var jwt = jwtTokenProvider.createToken(user);
-        securityService.authenticateToken(user, jwt);
+        try {
+            final var user = userDetailsService.findUser(login.getEmail(), login.getPassword());
+            final var jwt = jwtTokenProvider.createToken(user);
+            securityService.authenticateToken(user, jwt);
 
-        final var headers = new HttpHeaders();
-        headers.setBearerAuth(jwt);
-        return ResponseEntity.ok().headers(headers).build();
+            final var headers = new HttpHeaders();
+            headers.setBearerAuth(jwt);
+            return ResponseEntity.ok().headers(headers).build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(401).build(); // Unauthorized
+        }
     }
 }

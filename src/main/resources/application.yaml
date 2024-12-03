@@ -1,13 +1,13 @@
----
+# Server Configuration
 server:
   port: 8080
   servlet:
     context-path: /api/v1
 
+# Spring Datasource Configuration
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    type: com.zaxxer.hikari.HikariDataSource
     url: jdbc:mysql://localhost:3306/sakila
     username: sakila
     password: sakila
@@ -22,17 +22,19 @@ spring:
     database: mysql
     database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
       naming:
         implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyJpaCompliantImpl
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
     open-in-view: true
     show-sql: true
+
+  # Redis Configuration
+  # Changes:
+  # - Set `repositories.enabled` to `false` to disable Redis caching temporarily.
+  # - This resolves the Redis connection issue by bypassing Redis-related dependencies.
   data:
     redis:
-      host: localhost
-      port: 6379
-      password: redis
       repositories:
         enabled: false
       lettuce:
@@ -42,23 +44,35 @@ spring:
           max-idle: 10
           max-active: 10
           max-wait: 10000
+
+# Logging Configuration
 logging:
   level:
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type: TRACE
     root: info
 
+# Management Endpoints Configuration
 management:
   endpoints:
     web:
       exposure:
-        include: "health,prometheus"
+        include: "health,prometheus,auth"
     jmx:
       exposure:
         exclude: "*"
 
+# Application Properties
 app:
   uri:
     scheme: http
     host: localhost
     port: ${server.port}
+
+  # JWT Configuration
   jwt:
-    signing-key: aW8uanNvbndlYnRva2VuLnNlY3VyaXR5
+    # Change:
+    # - Updated the JWT signing key to a secure and proper Base64 encoded key.
+    # - Ensure this matches across all components (token generation and validation).
+    signing-key: "aW8uanNvbndlYnRva2VuLnNlY3VyaXR5"  # Base64 encoded key

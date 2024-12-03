@@ -33,8 +33,9 @@ public class ActorServiceImpl implements ActorService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "actorResponseCache", key = "#actorId")
+    @Cacheable(value = "actorResponseCache", key = "#actorId", unless = "#result == null")
     public Optional<ActorDto.Actor> getActor(Integer actorId) {
+        // Added null check in the cache logic
         final var entity = actorRepository.findById(actorId).orElseThrow(() ->
                 new ResourceNotFoundException("Actor not found with id '" + actorId + "'"));
         return Optional.of(actorMapper.mapToDto(entity));

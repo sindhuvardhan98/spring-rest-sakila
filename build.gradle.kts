@@ -46,6 +46,7 @@ openapi3 {
     format = "yaml"
 }
 
+
 postman {
     baseUrl = "http://localhost:8080/api/v1"
     title = "Sakila REST API Service"
